@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: emotion-service
+server:
+  servlet:
+    context-path: /api/v1
+
