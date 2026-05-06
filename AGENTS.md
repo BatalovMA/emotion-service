@@ -5,6 +5,13 @@ Provide a REST API that analyzes dialog messages and returns emotion temperature
 
 ---
 
+## TODOs
+
+* Replace demo VADER rules with a real library-backed implementation.
+* Replace `StubInferenceEngine` with ML-backed inference.
+
+---
+
 ## API (v1)
 
 ### 1. Analyze Single Message
@@ -26,13 +33,15 @@ POST /api/v1/emotion/message
   "analysis": {
     "speaker": "user",
     "temperature": -0.72,
-    "sentiment": -0.8,
-    "emotion": "anger",
-    "intensity": 0.9,
-    "confidence": 0.92
+    "emotion": ["anger", "negative"],
+    "confidence": 0.6
   }
 }
 ```
+
+**Notes**
+
+* Uses hybrid analysis (VADER sentiment + NRC lexicon emotions)
 
 ---
 
@@ -69,9 +78,7 @@ POST /api/v1/emotion/dialogue
     {
       "speaker": "user",
       "temperature": -0.7,
-      "sentiment": -0.65,
-      "emotion": "sadness",
-      "intensity": 0.8,
+      "emotion": ["sadness"],
       "confidence": 0.91
     }
   ]
@@ -121,9 +128,7 @@ POST /api/v1/emotion/message/with-context
     {
       "speaker": "user",
       "temperature": -0.8,
-      "sentiment": -0.75,
-      "emotion": "anger",
-      "intensity": 0.85,
+      "emotion": ["anger", "negative"],
       "confidence": 0.93
     }
   ]
@@ -154,9 +159,7 @@ temperature = sentiment * intensity
 class MessageAnalysisDto {
     String speaker;
     Double temperature;
-    Double sentiment;
-    String emotion;
-    Double intensity;
+    java.util.List<String> emotion;
     Double confidence;
 }
 ```
@@ -191,6 +194,7 @@ Controller → UseCase → Inference → Lexicon → Aggregation
 ### Lexicon Analyzer
 
 * Dictionary-based scoring (TBI)
+* Returns a ranked list of emotions; the first entry is dominant
 
 ### Aggregation Service
 

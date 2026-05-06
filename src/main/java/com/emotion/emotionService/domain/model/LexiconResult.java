@@ -4,10 +4,8 @@ import java.util.List;
 
 @lombok.Value
 @lombok.Builder
-public class EmotionResult {
-  String speaker;
+public class LexiconResult {
   double sentiment;
-  List<String> emotion;
   double intensity;
-  double confidence;
+  List<String> emotions;
 }
