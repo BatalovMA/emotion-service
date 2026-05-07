@@ -20,6 +20,7 @@ repositories {
 ext {
 	mapstructVersion = '1.6.3'
 	springdocVersion = '2.8.5'
+	onnxVersion = '1.18.0'
 }
 
 dependencies {
@@ -30,6 +31,8 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
 	implementation "org.mapstruct:mapstruct:${mapstructVersion}"
 	implementation "org.springdoc:springdoc-openapi-starter-webmvc-ui:${springdocVersion}"
+	implementation "com.microsoft.onnxruntime:onnxruntime:${onnxVersion}"
+	implementation 'ai.djl.huggingface:tokenizers:0.28.0'
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 	annotationProcessor "org.mapstruct:mapstruct-processor:${mapstructVersion}"

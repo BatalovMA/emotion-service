@@ -7,8 +7,7 @@ Provide a REST API that analyzes dialog messages and returns emotion temperature
 
 ## TODOs
 
-* Replace demo VADER rules with a real library-backed implementation.
-* Replace `StubInferenceEngine` with ML-backed inference.
+* Expand ONNX output to top-k emotions and confidence calibration.
 
 ---
 
@@ -19,7 +18,7 @@ api/             → HTTP layer (controllers, DTOs)
 application/     → use cases (orchestration)
 domain/          → core logic (models, rules)
 infrastructure/  → external systems (ML, Redis, lexicons)
-mapper/          → DTO ↔ domain mapping (MapStruct)
+mapper/          → DTO ↔ domain mapping (MapStruct)І
 config/          → configuration
 ```
 ---
@@ -92,7 +91,7 @@ POST /api/v1/emotion/message
 
 **Notes**
 
-* Uses hybrid analysis (VADER sentiment + NRC lexicon emotions)
+* Uses hybrid analysis (ONNX transformer + NRC lexicon emotions)
 
 ---
 
@@ -264,3 +263,23 @@ class ParticipantAnalysisDto {
 
 * Dictionary-based scoring (TBI)
 * Returns a ranked list of emotions; the first entry is dominant
+
+---
+
+## ONNX Setup
+
+Download `model.onnx` and `tokenizer.json` from:
+
+```
+SamLowe/roberta-base-go_emotions-onnx
+```
+
+Place the files here:
+
+```
+src/main/resources/model/
+```
+
+Model assets should be tracked with Git LFS so they are available on checkout without bloating Git history.
+
+The ONNX inference engine is enabled by default.

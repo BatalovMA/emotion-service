@@ -13,16 +13,14 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class CompositeLexiconAnalyzer implements LexiconAnalyzer {
 
-  private final VaderLikeAnalyzer vader;
   private final NrcEmotionAnalyzer nrc;
 
   @Override
   public LexiconResult analyze(String text) {
 
-    double sentiment = vader.sentiment(text);
-    double intensity = vader.intensity(text);
-
     Map<String, Double> emotions = nrc.analyze(text);
+    double sentiment = resolveSentiment(emotions);
+    double intensity = resolveIntensity(emotions);
 
     List<String> rankedEmotions =
         emotions.entrySet().stream()
@@ -39,6 +37,18 @@ public class CompositeLexiconAnalyzer implements LexiconAnalyzer {
         .intensity(intensity)
         .emotions(rankedEmotions)
         .build();
+  }
+
+  private double resolveSentiment(Map<String, Double> emotions) {
+    double positive = emotions.getOrDefault("positive", 0.0);
+    double negative = emotions.getOrDefault("negative", 0.0);
+    return positive - negative;
+  }
+
+  private double resolveIntensity(Map<String, Double> emotions) {
+    double positive = emotions.getOrDefault("positive", 0.0);
+    double negative = emotions.getOrDefault("negative", 0.0);
+    return Math.min(1.0, positive + negative);
   }
 
   private String resolveFallbackEmotion(double sentiment) {

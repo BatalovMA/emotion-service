@@ -20,8 +20,8 @@ public class HybridEmotionAnalyzer {
     EmotionResult ml = inferenceEngine.analyze(message);
     LexiconResult lex = lexiconAnalyzer.analyze(message.getText());
 
-    double finalSentiment = 0.7 * ml.getSentiment() + 0.3 * lex.getSentiment();
-    double finalIntensity = 0.7 * ml.getIntensity() + 0.3 * lex.getIntensity();
+    double finalSentiment = 0.85 * ml.getSentiment() + 0.15 * lex.getSentiment();
+    double finalIntensity = 0.85 * ml.getIntensity() + 0.15 * lex.getIntensity();
 
     List<String> emotions = ml.getConfidence() > 0.6 ? ml.getEmotion() : lex.getEmotions();
 
