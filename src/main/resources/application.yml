@@ -1,7 +1,15 @@
 spring:
   application:
     name: emotion-service
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
 server:
   servlet:
     context-path: /api/v1
 
+emotion:
+  context:
+    window-size: 30
+    ttl: PT30M

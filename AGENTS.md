@@ -6,12 +6,6 @@ Provide a REST API that analyzes dialog messages and returns emotion temperature
 
 ---
 
-## TODOs
-
-* Expand ONNX output to top-k emotions and confidence calibration.
-
----
-
 ## API (v1)
 
 ### 1. Analyze Single Message
@@ -46,6 +40,7 @@ POST /api/v1/emotion/message
 **Notes**
 
 * Uses hybrid analysis (ONNX transformer + NRC lexicon emotions)
+* Emotion lists are capped to top 3 entries
 
 ---
 
@@ -113,20 +108,17 @@ POST /api/v1/emotion/message/with-context
 
 ```json
 {
-  "dialogId": "dialog-1",
-  "messages": [
-    {
-      "speaker": "user",
-      "text": "Still not working..."
-    }
-  ]
+  "sessionId": "0c6190b4-4d8d-4d4f-9af0-5089372c03a8",
+  "speaker": "user",
+  "text": "Still not working..."
 }
 ```
 
 **Behavior**
 
+* If `sessionId` is missing, the server generates a UUID and returns it
 * Load previous messages from cache
-* Append new messages
+* Append new message
 * Analyze using combined context
 * Update cache
 
@@ -134,28 +126,24 @@ POST /api/v1/emotion/message/with-context
 
 ```json
 {
-  "dialogId": "dialog-1",
+  "sessionId": "0c6190b4-4d8d-4d4f-9af0-5089372c03a8",
+  "message": {
+    "speaker": "user",
+    "temperature": -0.8,
+    "emotion": [
+      "anger",
+      "negative"
+    ],
+    "confidence": 0.93
+  },
   "overallTemperature": -0.45,
-  "contextUsed": true,
-  "windowSize": 12,
-  "participants": [
-    {
-      "speaker": "user",
-      "temperature": -0.7,
-      "dominantEmotion": "frustration"
-    }
-  ],
-  "messages": [
-    {
-      "speaker": "user",
-      "temperature": -0.8,
-      "emotion": [
-        "anger",
-        "negative"
-      ],
-      "confidence": 0.93
-    }
-  ]
+  "dominantDialogueEmotion": "frustration",
+  "trajectory": {
+    "startTemperature": -0.15,
+    "endTemperature": -0.72,
+    "volatility": 0.44,
+    "trend": "negative"
+  }
 }
 ```
 

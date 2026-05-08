@@ -9,6 +9,8 @@ import com.emotion.emotionService.domain.model.Message;
 import java.nio.LongBuffer;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
@@ -17,6 +19,8 @@ import org.springframework.stereotype.Service;
 @Primary
 @RequiredArgsConstructor
 public class OnnxEmotionInferenceEngine implements EmotionInferenceEngine {
+
+  private static final int TOP_EMOTION_LIMIT = 3;
 
   private final OnnxSessionProvider sessionProvider;
   private final HuggingFaceTokenizerProvider tokenizerProvider;
@@ -48,14 +52,14 @@ public class OnnxEmotionInferenceEngine implements EmotionInferenceEngine {
         float[][] logits = (float[][]) result.get(0).getValue();
         float[] probabilities = softmax(logits[0]);
         int bestIndex = argmax(probabilities);
+        List<String> emotions = topKEmotions(probabilities);
 
         EmotionLabels emotionLabel = EmotionLabels.LABELS.get(bestIndex);
-        String emotion = emotionLabel.toString();
         double sentiment = mapEmotionToSentiment(emotionLabel);
 
         return EmotionResult.builder()
             .speaker(message.getSpeaker())
-            .emotion(List.of(emotion))
+            .emotion(emotions)
             .sentiment(sentiment)
             .intensity(Math.abs(sentiment))
             .confidence(probabilities[bestIndex])
@@ -64,6 +68,16 @@ public class OnnxEmotionInferenceEngine implements EmotionInferenceEngine {
     } catch (Exception e) {
       throw new IllegalStateException("ONNX inference failed", e);
     }
+  }
+
+  private List<String> topKEmotions(float[] probabilities) {
+    int limit = Math.min(OnnxEmotionInferenceEngine.TOP_EMOTION_LIMIT, probabilities.length);
+    return IntStream.range(0, probabilities.length)
+        .boxed()
+        .sorted((a, b) -> Float.compare(probabilities[b], probabilities[a]))
+        .limit(limit)
+        .map(index -> EmotionLabels.LABELS.get(index).toString())
+        .collect(Collectors.toList());
   }
 
   private int argmax(float[] values) {

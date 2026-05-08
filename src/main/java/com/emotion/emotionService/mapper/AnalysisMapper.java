@@ -1,9 +1,11 @@
 package com.emotion.emotionService.mapper;
 
+import com.emotion.emotionService.api.dto.ContextMessageAnalysisResponseDto;
 import com.emotion.emotionService.api.dto.DialogueResponseDto;
 import com.emotion.emotionService.api.dto.MessageAnalysisDto;
 import com.emotion.emotionService.api.dto.ParticipantAnalysisDto;
 import com.emotion.emotionService.api.dto.TrajectoryDto;
+import com.emotion.emotionService.domain.model.ContextMessageAnalysis;
 import com.emotion.emotionService.domain.model.DialogueAnalysis;
 import com.emotion.emotionService.domain.model.EmotionResult;
 import com.emotion.emotionService.domain.model.MessageAnalysis;
@@ -28,4 +30,6 @@ public interface AnalysisMapper {
   TrajectoryDto toDto(Trajectory trajectory);
 
   DialogueResponseDto toDto(DialogueAnalysis analysis);
+
+  ContextMessageAnalysisResponseDto toDto(ContextMessageAnalysis analysis);
 }
