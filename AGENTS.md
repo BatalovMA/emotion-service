@@ -108,7 +108,7 @@ POST /api/v1/emotion/message/with-context
 
 ```json
 {
-  "sessionId": "0c6190b4-4d8d-4d4f-9af0-5089372c03a8",
+  "sessionId": "d84b1292-e142-446a-b47a-58b1df85ca7a",
   "speaker": "user",
   "text": "Still not working..."
 }
@@ -126,25 +126,54 @@ POST /api/v1/emotion/message/with-context
 
 ```json
 {
-  "sessionId": "0c6190b4-4d8d-4d4f-9af0-5089372c03a8",
+  "sessionId": "d84b1292-e142-446a-b47a-58b1df85ca7a",
   "message": {
     "speaker": "user",
-    "temperature": -0.8,
+    "temperature": -0.33152499999999996,
     "emotion": [
-      "anger",
-      "negative"
+      "disappointment",
+      "neutral",
+      "sadness"
     ],
-    "confidence": 0.93
+    "confidence": 0.6389271020889282
   },
-  "overallTemperature": -0.45,
-  "dominantDialogueEmotion": "frustration",
+  "overallTemperature": -0.11050833333333332,
+  "dominantDialogueEmotion": "neutral",
   "trajectory": {
-    "startTemperature": -0.15,
-    "endTemperature": -0.72,
-    "volatility": 0.44,
+    "startTemperature": 0,
+    "endTemperature": -0.33152499999999996,
+    "volatility": 0.16576249999999998,
     "trend": "negative"
   }
 }
+```
+
+---
+
+### 4. Get session history
+
+GET /api/v1/emotion/message/with-context/session/{sessionId}
+
+**Response**
+
+```json
+[
+  {
+    "speaker": "user",
+    "text": "Hi",
+    "timestamp": "2026-05-08T23:40:20.256260200Z"
+  },
+  {
+    "speaker": "bot",
+    "text": "Hello",
+    "timestamp": "2026-05-08T23:40:43.781213Z"
+  },
+  {
+    "speaker": "user",
+    "text": "Still not working...",
+    "timestamp": "2026-05-08T23:42:56.932662400Z"
+  }
+]
 ```
 
 ---
