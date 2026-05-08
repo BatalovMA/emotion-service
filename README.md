@@ -1,6 +1,7 @@
 # Emotion Analysis API
 
 ## Goal
+
 Provide a REST API that analyzes dialog messages and returns emotion temperature.
 
 ---
@@ -21,6 +22,7 @@ infrastructure/  → external systems (ML, Redis, lexicons)
 mapper/          → DTO ↔ domain mapping (MapStruct)І
 config/          → configuration
 ```
+
 ---
 
 ## Layer Responsibilities
@@ -71,8 +73,7 @@ POST /api/v1/emotion/message
 ```json
 {
   "speaker": "user",
-  "text": "This is so annoying",
-  "timestamp": "2026-05-01T12:00:00Z"
+  "text": "This is so annoying"
 }
 ```
 
@@ -80,12 +81,12 @@ POST /api/v1/emotion/message
 
 ```json
 {
-  "analysis": {
-    "speaker": "user",
-    "temperature": -0.72,
-    "emotion": ["anger", "negative"],
-    "confidence": 0.6
-  }
+  "speaker": "user",
+  "temperature": -0.4488999999999999,
+  "emotion": [
+    "annoyance"
+  ],
+  "confidence": 0.8935558199882507
 }
 ```
 
@@ -103,10 +104,15 @@ POST /api/v1/emotion/dialogue
 
 ```json
 {
-  "dialogId": "dialog-1",
   "messages": [
-    { "speaker": "user", "text": "I am upset" },
-    { "speaker": "bot", "text": "Let me help you" }
+    {
+      "speaker": "user",
+      "text": "I am upset"
+    },
+    {
+      "speaker": "bot",
+      "text": "Let me help you"
+    }
   ]
 }
 ```
@@ -115,23 +121,48 @@ POST /api/v1/emotion/dialogue
 
 ```json
 {
-  "dialogId": "dialog-1",
-  "overallTemperature": -0.3,
+  "overallTemperature": -0.20801250000000002,
+  "dominantDialogueEmotion": "caring",
   "participants": [
     {
       "speaker": "user",
-      "temperature": -0.6,
-      "dominantEmotion": "sadness"
+      "temperature": -0.41602500000000003,
+      "dominantEmotion": "negative",
+      "emotionalTrend": "stable"
+    },
+    {
+      "speaker": "bot",
+      "temperature": 0,
+      "dominantEmotion": "caring",
+      "emotionalTrend": "stable"
     }
   ],
   "messages": [
     {
       "speaker": "user",
-      "temperature": -0.7,
-      "emotion": ["sadness"],
-      "confidence": 0.91
+      "temperature": -0.41602500000000003,
+      "emotion": [
+        "negative",
+        "sadness",
+        "anger"
+      ],
+      "confidence": 0.5305424928665161
+    },
+    {
+      "speaker": "bot",
+      "temperature": 0,
+      "emotion": [
+        "caring"
+      ],
+      "confidence": 0.9614611268043518
     }
-  ]
+  ],
+  "trajectory": {
+    "startTemperature": -0.41602500000000003,
+    "endTemperature": 0,
+    "volatility": 0.41602500000000003,
+    "trend": "positive"
+  }
 }
 ```
 
@@ -147,7 +178,10 @@ POST /api/v1/emotion/message/with-context
 {
   "dialogId": "dialog-1",
   "messages": [
-    { "speaker": "user", "text": "Still not working..." }
+    {
+      "speaker": "user",
+      "text": "Still not working..."
+    }
   ]
 }
 ```
@@ -178,7 +212,10 @@ POST /api/v1/emotion/message/with-context
     {
       "speaker": "user",
       "temperature": -0.8,
-      "emotion": ["anger", "negative"],
+      "emotion": [
+        "anger",
+        "negative"
+      ],
       "confidence": 0.93
     }
   ]
@@ -204,21 +241,36 @@ temperature = sentiment * intensity
 ### MessageAnalysisDto
 
 ```java
-class MessageAnalysisDto {
-    String speaker;
-    Double temperature;
-    java.util.List<String> emotion;
-    Double confidence;
+record MessageAnalysisDto(
+        String speaker,
+        Double temperature,
+        java.util.List<String> emotion,
+        Double confidence
+) {
 }
 ```
 
 ### ParticipantAnalysisDto
 
 ```java
-class ParticipantAnalysisDto {
-    String speaker;
-    Double temperature;
-    String dominantEmotion;
+record ParticipantAnalysisDto(
+        String speaker,
+        Double temperature,
+        String dominantEmotion,
+        String emotionalTrend
+) {
+}
+```
+
+### TrajectoryDto
+
+```java
+record TrajectoryDto(
+        Double startTemperature,
+        Double endTemperature,
+        Double volatility,
+        String trend
+) {
 }
 ```
 
@@ -230,6 +282,7 @@ class ParticipantAnalysisDto {
 * Same entity → same DTO
 * Aggregated entity → separate DTO
 * API is stateless (except context endpoint)
+* Duplication tracking lives in `DUPLICATION_NOTES.md`
 
 ### Mapping
 

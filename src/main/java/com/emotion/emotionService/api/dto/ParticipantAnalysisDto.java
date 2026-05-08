@@ -1,8 +1,4 @@
 package com.emotion.emotionService.api.dto;
 
-@lombok.Data
-public class ParticipantAnalysisDto {
-  private String speaker;
-  private Double temperature;
-  private String dominantEmotion;
-}
+public record ParticipantAnalysisDto(
+    String speaker, Double temperature, String dominantEmotion, String emotionalTrend) {}

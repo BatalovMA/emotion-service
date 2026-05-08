@@ -1,12 +1,11 @@
 package com.emotion.emotionService.infrastructure.lexicon;
 
 import com.emotion.emotionService.domain.model.LexiconResult;
+import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
-import java.util.Map;
 
 @Component
 @Primary

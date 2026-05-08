@@ -1,11 +1,9 @@
 package com.emotion.emotionService.application.usecase;
 
 import com.emotion.emotionService.api.dto.MessageAnalysisDto;
-import com.emotion.emotionService.domain.model.EmotionResult;
 import com.emotion.emotionService.domain.model.Message;
-import com.emotion.emotionService.domain.service.AggregationService;
-import com.emotion.emotionService.infrastructure.lexicon.HybridEmotionAnalyzer;
-import com.emotion.emotionService.mapper.MessageMapper;
+import com.emotion.emotionService.domain.model.MessageAnalysis;
+import com.emotion.emotionService.mapper.AnalysisMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -13,16 +11,11 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class AnalyzeMessageUseCase {
 
-    private final HybridEmotionAnalyzer hybridEmotionAnalyzer;
-    private final AggregationService aggregationService;
-    private final MessageMapper mapper;
+  private final MessageAnalysisService messageAnalysisService;
+  private final AnalysisMapper analysisMapper;
 
-    public MessageAnalysisDto execute(Message message) {
-        EmotionResult result = hybridEmotionAnalyzer.analyze(message);
-
-        double temperature = aggregationService
-                .calculateTemperature(result.getSentiment(), result.getIntensity());
-
-        return mapper.toDto(result, temperature);
-    }
+  public MessageAnalysisDto execute(Message message) {
+    MessageAnalysis analysis = messageAnalysisService.analyze(message);
+    return analysisMapper.toDto(analysis);
+  }
 }

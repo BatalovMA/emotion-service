@@ -1,12 +1,11 @@
 package com.emotion.emotionService.infrastructure.lexicon;
 
 import jakarta.annotation.PostConstruct;
-import org.springframework.stereotype.Component;
-
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.*;
 import java.util.stream.Collectors;
+import org.springframework.stereotype.Component;
 
 @Component
 public class NrcEmotionAnalyzer {

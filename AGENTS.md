@@ -1,6 +1,7 @@
 # AGENTS.md — Emotion Analysis API
 
 ## Goal
+
 Provide a REST API that analyzes dialog messages and returns emotion temperature.
 
 ---
@@ -14,14 +15,15 @@ Provide a REST API that analyzes dialog messages and returns emotion temperature
 ## API (v1)
 
 ### 1. Analyze Single Message
+
 POST /api/v1/emotion/message
 
 **Request**
+
 ```json
 {
   "speaker": "user",
-  "text": "This is so annoying",
-  "timestamp": "2026-05-01T12:00:00Z"
+  "text": "This is so annoying"
 }
 ```
 
@@ -32,7 +34,10 @@ POST /api/v1/emotion/message
   "analysis": {
     "speaker": "user",
     "temperature": -0.72,
-    "emotion": ["anger", "negative"],
+    "emotion": [
+      "anger",
+      "negative"
+    ],
     "confidence": 0.6
   }
 }
@@ -52,10 +57,15 @@ POST /api/v1/emotion/dialogue
 
 ```json
 {
-  "dialogId": "dialog-1",
   "messages": [
-    { "speaker": "user", "text": "I am upset" },
-    { "speaker": "bot", "text": "Let me help you" }
+    {
+      "speaker": "user",
+      "text": "I am upset"
+    },
+    {
+      "speaker": "bot",
+      "text": "Let me help you"
+    }
   ]
 }
 ```
@@ -64,23 +74,32 @@ POST /api/v1/emotion/dialogue
 
 ```json
 {
-  "dialogId": "dialog-1",
   "overallTemperature": -0.3,
+  "dominantDialogueEmotion": "sadness",
   "participants": [
     {
       "speaker": "user",
       "temperature": -0.6,
-      "dominantEmotion": "sadness"
+      "dominantEmotion": "sadness",
+      "emotionalTrend": "escalating"
     }
   ],
   "messages": [
     {
       "speaker": "user",
       "temperature": -0.7,
-      "emotion": ["sadness"],
+      "emotion": [
+        "sadness"
+      ],
       "confidence": 0.91
     }
-  ]
+  ],
+  "trajectory": {
+    "startTemperature": -0.15,
+    "endTemperature": -0.72,
+    "volatility": 0.44,
+    "trend": "negative"
+  }
 }
 ```
 
@@ -96,7 +115,10 @@ POST /api/v1/emotion/message/with-context
 {
   "dialogId": "dialog-1",
   "messages": [
-    { "speaker": "user", "text": "Still not working..." }
+    {
+      "speaker": "user",
+      "text": "Still not working..."
+    }
   ]
 }
 ```
@@ -127,7 +149,10 @@ POST /api/v1/emotion/message/with-context
     {
       "speaker": "user",
       "temperature": -0.8,
-      "emotion": ["anger", "negative"],
+      "emotion": [
+        "anger",
+        "negative"
+      ],
       "confidence": 0.93
     }
   ]
@@ -155,21 +180,36 @@ temperature = sentiment * intensity
 ### MessageAnalysisDto
 
 ```java
-class MessageAnalysisDto {
-    String speaker;
-    Double temperature;
-    java.util.List<String> emotion;
-    Double confidence;
+record MessageAnalysisDto(
+        String speaker,
+        Double temperature,
+        java.util.List<String> emotion,
+        Double confidence
+) {
 }
 ```
 
 ### ParticipantAnalysisDto
 
 ```java
-class ParticipantAnalysisDto {
-    String speaker;
-    Double temperature;
-    String dominantEmotion;
+record ParticipantAnalysisDto(
+        String speaker,
+        Double temperature,
+        String dominantEmotion,
+        String emotionalTrend
+) {
+}
+```
+
+### TrajectoryDto
+
+```java
+record TrajectoryDto(
+        Double startTemperature,
+        Double endTemperature,
+        Double volatility,
+        String trend
+) {
 }
 ```
 
@@ -217,8 +257,10 @@ Controller → UseCase → Inference → Lexicon → Aggregation
 * Keep API stateless (except context endpoint)
 * Separate domain from DTOs
 * Do not couple business logic to ML implementation
-* Update README.md and AGENTS.md if related  code is changed
-* All DTO ↔ domain mapping MUST use MapStruct
+* DTOs should be Java records (keep DTOs as records)
+* Update README.md and AGENTS.md if related code is changed
+* All DTO <-> domain mapping MUST use MapStruct
+* Duplication tracking lives in `DUPLICATION_NOTES.md`
 
 ---
 
