@@ -21,8 +21,8 @@ public class TrajectoryAnalysisService {
           .build();
     }
 
-    double start = messages.get(0).getTemperature();
-    double end = messages.get(messages.size() - 1).getTemperature();
+    double start = messages.getFirst().getTemperature();
+    double end = messages.getLast().getTemperature();
     double volatility = EmotionStatistics.averageAbsoluteDeltaMessages(messages);
 
     return Trajectory.builder()

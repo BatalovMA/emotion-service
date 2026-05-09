@@ -86,7 +86,7 @@ POST /api/v1/emotion/message
 
 **Notes**
 
-* Uses hybrid analysis (ONNX transformer + NRC lexicon emotions)
+* Uses hybrid analysis (ONNX transformer + NRC + DepecheMood lexicons)
 * Emotion lists are capped to top 3 entries
 
 ---
@@ -335,8 +335,30 @@ record TrajectoryDto(
 
 ## Lexicon Analyzer
 
-* Dictionary-based scoring (TBI)
-* Returns a ranked list of emotions; the first entry is dominant
+ * Dictionary-based scoring (NRC + DepecheMood)
+ * Returns a ranked list of emotions; the first entry is dominant
+ * Short messages (<= 3 words) increase lexicon influence
+
+---
+
+## Fusion Weights
+
+Default weighting:
+
+```text
+transformer = 0.85
+nrc = 0.05
+depecheMood = 0.10
+```
+
+Short messages (<= 3 words):
+
+```text
+transformer = 0.70
+lexicons = 0.30
+```
+
+Lexicon fusion keeps a 1:2 NRC-to-DepecheMood ratio inside the lexicon share.
 
 ---
 

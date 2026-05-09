@@ -62,8 +62,8 @@ public class ParticipantAggregationService {
       return "volatile";
     }
 
-    double startAbs = Math.abs(temperatures.get(0));
-    double endAbs = Math.abs(temperatures.get(temperatures.size() - 1));
+    double startAbs = Math.abs(temperatures.getFirst());
+    double endAbs = Math.abs(temperatures.getLast());
 
     if (endAbs - startAbs > TREND_THRESHOLD) {
       return "escalating";

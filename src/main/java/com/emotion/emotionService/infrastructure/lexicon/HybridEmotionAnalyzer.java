@@ -13,6 +13,13 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class HybridEmotionAnalyzer {
 
+  private static final double DEFAULT_ML_WEIGHT = 0.85;
+  private static final double DEFAULT_LEXICON_WEIGHT = 0.15;
+  private static final double SHORT_MESSAGE_ML_WEIGHT = 0.70;
+  private static final double SHORT_MESSAGE_LEXICON_WEIGHT = 0.30;
+  private static final int SHORT_MESSAGE_WORD_LIMIT = 3;
+  private static final int EMOTIONS_LIMIT = 3;
+
   private final EmotionInferenceEngine inferenceEngine;
   private final LexiconAnalyzer lexiconAnalyzer;
 
@@ -21,11 +28,16 @@ public class HybridEmotionAnalyzer {
     EmotionResult ml = inferenceEngine.analyze(message);
     LexiconResult lex = lexiconAnalyzer.analyze(message.text());
 
-    double finalSentiment = 0.85 * ml.getSentiment() + 0.15 * lex.getSentiment();
-    double finalIntensity = 0.85 * ml.getIntensity() + 0.15 * lex.getIntensity();
+    boolean shortMessage =
+        LexiconPreprocessor.countWords(message.text()) <= SHORT_MESSAGE_WORD_LIMIT;
+    double mlWeight = shortMessage ? SHORT_MESSAGE_ML_WEIGHT : DEFAULT_ML_WEIGHT;
+    double lexWeight = shortMessage ? SHORT_MESSAGE_LEXICON_WEIGHT : DEFAULT_LEXICON_WEIGHT;
+
+    double finalSentiment = mlWeight * ml.getSentiment() + lexWeight * lex.getSentiment();
+    double finalIntensity = mlWeight * ml.getIntensity() + lexWeight * lex.getIntensity();
 
     List<String> emotions = ml.getConfidence() > 0.5 ? ml.getEmotion() : lex.getEmotions();
-    List<String> topEmotions = emotions.stream().limit(3).collect(Collectors.toList());
+    List<String> topEmotions = emotions.stream().limit(EMOTIONS_LIMIT).collect(Collectors.toList());
 
     return EmotionResult.builder()
         .speaker(message.speaker())

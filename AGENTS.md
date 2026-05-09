@@ -39,7 +39,7 @@ POST /api/v1/emotion/message
 
 **Notes**
 
-* Uses hybrid analysis (ONNX transformer + NRC lexicon emotions)
+* Uses hybrid analysis (ONNX transformer + NRC + DepecheMood lexicons)
 * Emotion lists are capped to top 3 entries
 
 ---
@@ -246,19 +246,30 @@ Controller → UseCase → Inference → Lexicon → Aggregation
 
 ### Lexicon Analyzer
 
-* Dictionary-based scoring (TBI)
+* Dictionary-based scoring (NRC + DepecheMood)
 * Returns a ranked list of emotions; the first entry is dominant
+* Short messages (<= 3 words) increase lexicon influence
 
-### Aggregation Service
+---
 
-* Per-message temperature
-* Per-speaker aggregation
-* Overall temperature
+## Fusion Weights
 
-### Context Service
+Default weighting:
 
-* Stores recent messages (Redis)
-* Sliding window (10–30 messages)
+```text
+transformer = 0.85
+nrc = 0.05
+depecheMood = 0.10
+```
+
+Short messages (<= 3 words):
+
+```text
+transformer = 0.70
+lexicons = 0.30
+```
+
+Lexicon fusion keeps a 1:2 NRC-to-DepecheMood ratio inside the lexicon share.
 
 ---
 
@@ -306,4 +317,4 @@ Model assets should be tracked with Git LFS so they are available on checkout wi
 ## ONNX Dominant vs Close Emotions
 
 The ONNX inference engine returns the dominant emotion by default. If other emotions are within
-close confidence of the dominant one, it returns those closest emotions too (up to 3 total).
+`0.05` confidence of the dominant one, it returns those closest emotions too (up to 3 total).

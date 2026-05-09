@@ -1,9 +1,9 @@
 package com.emotion.emotionService.domain.service;
 
 import com.emotion.emotionService.domain.model.MessageAnalysis;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public final class EmotionStatistics {
 
@@ -22,16 +22,13 @@ public final class EmotionStatistics {
       return fallback;
     }
 
-    Map<String, Integer> counts = new HashMap<>();
-    for (MessageAnalysis analysis : messages) {
-      if (analysis.getEmotion() == null || analysis.getEmotion().isEmpty()) {
-        continue;
-      }
-      String emotion = analysis.getEmotion().get(0);
-      counts.merge(emotion, 1, Integer::sum);
-    }
-
-    return counts.entrySet().stream()
+    return messages.stream()
+        .map(MessageAnalysis::getEmotion)
+        .filter(emotions -> emotions != null && !emotions.isEmpty())
+        .map(List::getFirst)
+        .collect(Collectors.groupingBy(emotion -> emotion, Collectors.counting()))
+        .entrySet()
+        .stream()
         .max(Map.Entry.comparingByValue())
         .map(Map.Entry::getKey)
         .orElse(fallback);
@@ -42,11 +39,10 @@ public final class EmotionStatistics {
       return 0.0;
     }
 
-    double sum = 0.0;
-    for (int i = 1; i < values.size(); i++) {
-      sum += Math.abs(values.get(i) - values.get(i - 1));
-    }
-    return sum / (values.size() - 1);
+    return java.util.stream.IntStream.range(1, values.size())
+        .mapToDouble(i -> Math.abs(values.get(i) - values.get(i - 1)))
+        .average()
+        .orElse(0.0);
   }
 
   public static double averageAbsoluteDeltaMessages(List<MessageAnalysis> messages) {
@@ -54,10 +50,12 @@ public final class EmotionStatistics {
       return 0.0;
     }
 
-    double sum = 0.0;
-    for (int i = 1; i < messages.size(); i++) {
-      sum += Math.abs(messages.get(i).getTemperature() - messages.get(i - 1).getTemperature());
-    }
-    return sum / (messages.size() - 1);
+    return java.util.stream.IntStream.range(1, messages.size())
+        .mapToDouble(
+            i ->
+                Math.abs(
+                    messages.get(i).getTemperature() - messages.get(i - 1).getTemperature()))
+        .average()
+        .orElse(0.0);
   }
 }

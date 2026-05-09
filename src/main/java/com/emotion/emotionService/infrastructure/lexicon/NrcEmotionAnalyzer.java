@@ -19,20 +19,19 @@ public class NrcEmotionAnalyzer {
             new InputStreamReader(
                 Objects.requireNonNull(getClass().getResourceAsStream("/lexicon/nrc.txt"))))) {
 
-      String line;
-
-      while ((line = reader.readLine()) != null) {
-        String[] parts = line.split("\t");
-
-        String word = parts[0];
-        String emotion = parts[1];
-        int association = Integer.parseInt(parts[2]);
-
-        if (association == 1) {
-          wordToEmotions.computeIfAbsent(word, k -> new HashSet<>()).add(emotion);
-        }
-      }
-
+      reader
+          .lines()
+          .map(line -> line.split("\t"))
+          .filter(parts -> parts.length >= 3)
+          .forEach(
+              parts -> {
+                String word = parts[0];
+                String emotion = parts[1];
+                int association = Integer.parseInt(parts[2]);
+                if (association == 1) {
+                  wordToEmotions.computeIfAbsent(word, k -> new HashSet<>()).add(emotion);
+                }
+              });
     } catch (Exception e) {
       throw new RuntimeException("Failed to load NRC lexicon", e);
     }
@@ -40,26 +39,41 @@ public class NrcEmotionAnalyzer {
 
   public Map<String, Double> analyze(String text) {
 
-    String[] tokens = normalize(text);
-
-    Map<String, Long> counts =
-        Arrays.stream(tokens)
-            .map(wordToEmotions::get)
-            .filter(Objects::nonNull)
-            .flatMap(Set::stream)
-            .collect(Collectors.groupingBy(emotion -> emotion, Collectors.counting()));
-
-    long total = counts.values().stream().mapToLong(Long::longValue).sum();
+    Map<String, Double> scores = analyzeScores(text);
+    double total = scores.values().stream().mapToDouble(Double::doubleValue).sum();
 
     if (total == 0) {
       return Collections.emptyMap();
     }
 
-    return counts.entrySet().stream()
-        .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue() / (double) total));
+    return scores.entrySet().stream()
+        .collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue() / total));
   }
 
-  private String[] normalize(String text) {
-    return text.toLowerCase().replaceAll("[^a-z ]", "").split("\\s+");
+  Map<String, Double> analyzeScores(String text) {
+    List<LexiconPreprocessor.Token> tokens = LexiconPreprocessor.tokenizeWithNegation(text);
+
+    return tokens.stream()
+        .map(token -> Map.entry(token, wordToEmotions.get(token.word())))
+        .filter(entry -> entry.getValue() != null)
+        .flatMap(
+            entry ->
+                entry.getValue().stream()
+                    .map(
+                        emotion ->
+                            entry.getKey().negated()
+                                ? invertPolarity(emotion)
+                                : emotion))
+        .collect(Collectors.toMap(emotion -> emotion, emotion -> 1.0, Double::sum));
+  }
+
+  private String invertPolarity(String emotion) {
+    if ("positive".equals(emotion)) {
+      return "negative";
+    }
+    if ("negative".equals(emotion)) {
+      return "positive";
+    }
+    return emotion;
   }
 }
