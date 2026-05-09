@@ -237,8 +237,10 @@ GET /api/v1/emotion/message/with-context/session/{sessionId}
 ```
 ---
 
-## TODO:
-- Make ONNX return top 3 emotions if dominant one has similar confidence or return 1 dominant emotion
+## ONNX Dominant vs Close Emotions
+
+The ONNX inference engine returns the dominant emotion by default. If other emotions are within
+close confidence of the dominant one, it returns those closest emotions too (up to 3 total).
 
 ---
 

@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 public class OnnxEmotionInferenceEngine implements EmotionInferenceEngine {
 
   private static final int TOP_EMOTION_LIMIT = 3;
+  private static final float CLOSE_CONFIDENCE_DELTA = 0.1f;
 
   private final OnnxSessionProvider sessionProvider;
   private final HuggingFaceTokenizerProvider tokenizerProvider;
@@ -52,7 +53,7 @@ public class OnnxEmotionInferenceEngine implements EmotionInferenceEngine {
         float[][] logits = (float[][]) result.get(0).getValue();
         float[] probabilities = softmax(logits[0]);
         int bestIndex = argmax(probabilities);
-        List<String> emotions = topKEmotions(probabilities);
+        List<String> emotions = topKOrDominant(probabilities);
 
         EmotionLabels emotionLabel = EmotionLabels.LABELS.get(bestIndex);
         double sentiment = mapEmotionToSentiment(emotionLabel);
@@ -70,12 +71,19 @@ public class OnnxEmotionInferenceEngine implements EmotionInferenceEngine {
     }
   }
 
-  private List<String> topKEmotions(float[] probabilities) {
-    int limit = Math.min(OnnxEmotionInferenceEngine.TOP_EMOTION_LIMIT, probabilities.length);
-    return IntStream.range(0, probabilities.length)
-        .boxed()
-        .sorted((a, b) -> Float.compare(probabilities[b], probabilities[a]))
-        .limit(limit)
+  private List<String> topKOrDominant(float[] probabilities) {
+
+    List<Integer> sortedIndexes =
+        IntStream.range(0, probabilities.length)
+            .boxed()
+            .sorted((a, b) -> Float.compare(probabilities[b], probabilities[a]))
+            .toList();
+
+    float dominantConfidence = probabilities[sortedIndexes.getFirst()];
+
+    return sortedIndexes.stream()
+        .filter(index -> dominantConfidence - probabilities[index] <= CLOSE_CONFIDENCE_DELTA)
+        .limit(TOP_EMOTION_LIMIT)
         .map(index -> EmotionLabels.LABELS.get(index).toString())
         .collect(Collectors.toList());
   }

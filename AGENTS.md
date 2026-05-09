@@ -300,3 +300,10 @@ src/main/resources/model/
 ```
 
 Model assets should be tracked with Git LFS so they are available on checkout without bloating Git history.
+
+---
+
+## ONNX Dominant vs Close Emotions
+
+The ONNX inference engine returns the dominant emotion by default. If other emotions are within
+close confidence of the dominant one, it returns those closest emotions too (up to 3 total).
