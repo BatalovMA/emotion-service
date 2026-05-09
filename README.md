@@ -1,62 +1,59 @@
 # Emotion Analysis API
 
-## Goal
+REST API for conversational emotion analysis using:
+- ONNX transformer inference
+- NRC Emotion Lexicon
+- DepecheMood
 
-Provide a REST API that analyzes dialog messages and returns emotion temperature.
+Supports:
+- single message analysis
+- dialogue analysis
+- contextual conversation memory
+- emotional trajectory tracking
 
 ---
 
-## Project Structure
+# Features
+
+- Hybrid ML + lexicon emotion inference
+- Real-time emotion temperature scoring
+- Context-aware conversation analysis
+- Redis-backed conversational memory
+- Swagger/OpenAPI support
+- ONNX runtime inference
+- MapStruct-based DTO mappin
+
+---
+
+# Tech Stack
+
+- Java 21
+- Spring Boot
+- Gradle
+- ONNX Runtime
+- Redis
+- MapStruct
+- Docker
+
+---
+
+# Swagger
+
+Swagger UI:
 
 ```text
-api/             → HTTP layer (controllers, DTOs)
-application/     → use cases (orchestration)
-domain/          → core logic (models, rules)
-infrastructure/  → external systems (ML, Redis, lexicons)
-mapper/          → DTO ↔ domain mapping (MapStruct)І
-config/          → configuration
+http://localhost:8080/api/v1/swagger-ui/index.html
+```
+
+OpenAPI docs:
+
+```text
+http://localhost:8080/api/v1/v3/api-docs
 ```
 
 ---
 
-## Layer Responsibilities
-
-### api/
-
-* REST endpoints
-* request/response DTOs
-
-### application/
-
-* Use cases (AnalyzeMessage, AnalyzeDialogue, etc.)
-* Orchestrates flow
-
-### domain/
-
-* Business logic only
-* No Spring, no DB, no ML implementations
-
-### infrastructure/
-
-* ML models
-* Redis cache
-* external integrations
-
-### mapper/
-
-* All mapping via MapStruct (mandatory)
-
----
-
-## Request Flow
-
-```text
-Controller → UseCase → Domain → Infrastructure → Response
-```
-
----
-
-## API (v1)
+## API
 
 ### 1. Analyze Single Message
 
@@ -235,147 +232,49 @@ GET /api/v1/emotion/message/with-context/session/{sessionId}
   }
 ]
 ```
----
-
-## ONNX Dominant vs Close Emotions
-
-The ONNX inference engine returns the dominant emotion by default. If other emotions are within
-close confidence of the dominant one, it returns those closest emotions too (up to 3 total).
 
 ---
 
+# Emotion Temperature
 
-## Core Concept
-
-### Emotion Temperature
-
-Range: [-1.0, 1.0]
+Range:
 
 ```text
-temperature = sentiment * intensity
+[-1.0, 1.0]
 ```
+
+Interpretation:
+- negative → negative emotional state
+- positive → positive emotional state
+- near zero → neutral/stable
 
 ---
 
-## DTOs
+# Hybrid Inference
 
-### MessageAnalysisDto
+The system combines:
+- ONNX transformer inference
+- NRC categorical emotions
+- DepecheMood emotional intensity
 
-```java
-record MessageAnalysisDto(
-        String speaker,
-        Double temperature,
-        java.util.List<String> emotion,
-        Double confidence
-) {
-}
-```
-
-### ParticipantAnalysisDto
-
-```java
-record ParticipantAnalysisDto(
-        String speaker,
-        Double temperature,
-        String dominantEmotion,
-        String emotionalTrend
-) {
-}
-```
-
-### TrajectoryDto
-
-```java
-record TrajectoryDto(
-        Double startTemperature,
-        Double endTemperature,
-        Double volatility,
-        String trend
-) {
-}
-```
+Transformer inference remains the primary signal.
 
 ---
 
-## Rules
+# Contextual Analysis
 
-* No client-side message IDs
-* Same entity → same DTO
-* Aggregated entity → separate DTO
-* API is stateless (except context endpoint)
-* Duplication tracking lives in `DUPLICATION_NOTES.md`
-
-### Mapping
-
-* ALL mapping must use MapStruct
-* No manual mapping in services/controllers
-
-### Architecture
-
-* Do not mix domain and infrastructure
-* ML must be accessed via interface
-* No business logic in controllers
+The contextual endpoint uses Redis-backed rolling memory:
+- restores previous messages
+- tracks emotional trajectory
+- improves short-message interpretation
+- enables emotionally continuous conversations
 
 ---
 
-## Metric Usage
+# Notes
 
-* `messages[].temperature` → real-time reactions
-* `overallTemperature` → global behavior
-
----
-
-## Future
-
-* Replace cache with DB
-* Improve ML model
-* Add streaming / real-time updates
-
----
-
-## Lexicon Analyzer
-
- * Dictionary-based scoring (NRC + DepecheMood)
- * Returns a ranked list of emotions; the first entry is dominant
- * Short messages (<= 3 words) increase lexicon influence
-
----
-
-## Fusion Weights
-
-Default weighting:
-
-```text
-transformer = 0.85
-nrc = 0.05
-depecheMood = 0.10
-```
-
-Short messages (<= 3 words):
-
-```text
-transformer = 0.70
-lexicons = 0.30
-```
-
-Lexicon fusion keeps a 1:2 NRC-to-DepecheMood ratio inside the lexicon share.
-
----
-
-## ONNX Setup
-
-Download `model.onnx` and `tokenizer.json` from:
-
-```
-SamLowe/roberta-base-go_emotions-onnx
-```
-
-Place the files here:
-
-```
-src/main/resources/model/
-```
-
-Model assets should be tracked with Git LFS so they are available on checkout without bloating Git history.
-
-The ONNX inference engine is enabled by default.
+- Emotion lists are capped to top 3 entries
+- Short messages increase lexicon influence
+- Context endpoint keeps rolling message windows
+- Redis is used only for active conversational memory
+- See AGENTS.md for more implementation-sided notes

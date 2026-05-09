@@ -1,183 +1,116 @@
-# AGENTS.md — Emotion Analysis API
+## Architecture
 
-## Goal
-
-Provide a REST API that analyzes dialog messages and returns emotion temperature.
-
----
-
-## API (v1)
-
-### 1. Analyze Single Message
-
-POST /api/v1/emotion/message
-
-**Request**
-
-```json
-{
-  "speaker": "user",
-  "text": "This is so annoying"
-}
-```
-
-**Response**
-
-```json
-{
-  "analysis": {
-    "speaker": "user",
-    "temperature": -0.72,
-    "emotion": [
-      "anger",
-      "negative"
-    ],
-    "confidence": 0.6
-  }
-}
-```
-
-**Notes**
-
-* Uses hybrid analysis (ONNX transformer + NRC + DepecheMood lexicons)
-* Emotion lists are capped to top 3 entries
-
----
-
-### 2. Analyze Dialogue
-
-POST /api/v1/emotion/dialogue
-
-**Request**
-
-```json
-{
-  "messages": [
-    {
-      "speaker": "user",
-      "text": "I am upset"
-    },
-    {
-      "speaker": "bot",
-      "text": "Let me help you"
-    }
-  ]
-}
-```
-
-**Response**
-
-```json
-{
-  "overallTemperature": -0.3,
-  "dominantDialogueEmotion": "sadness",
-  "participants": [
-    {
-      "speaker": "user",
-      "temperature": -0.6,
-      "dominantEmotion": "sadness",
-      "emotionalTrend": "escalating"
-    }
-  ],
-  "messages": [
-    {
-      "speaker": "user",
-      "temperature": -0.7,
-      "emotion": [
-        "sadness"
-      ],
-      "confidence": 0.91
-    }
-  ],
-  "trajectory": {
-    "startTemperature": -0.15,
-    "endTemperature": -0.72,
-    "volatility": 0.44,
-    "trend": "negative"
-  }
-}
+```text
+Controller → UseCase → Domain → Infrastructure → Response
 ```
 
 ---
 
-### 3. Analyze With Context
+## Project Structure
 
-POST /api/v1/emotion/message/with-context
-
-**Request**
-
-```json
-{
-  "sessionId": "d84b1292-e142-446a-b47a-58b1df85ca7a",
-  "speaker": "user",
-  "text": "Still not working..."
-}
-```
-
-**Behavior**
-
-* If `sessionId` is missing, the server generates a UUID and returns it
-* Load previous messages from cache
-* Append new message
-* Analyze using combined context
-* Update cache
-
-**Response**
-
-```json
-{
-  "sessionId": "d84b1292-e142-446a-b47a-58b1df85ca7a",
-  "message": {
-    "speaker": "user",
-    "temperature": -0.33152499999999996,
-    "emotion": [
-      "disappointment",
-      "neutral",
-      "sadness"
-    ],
-    "confidence": 0.6389271020889282
-  },
-  "overallTemperature": -0.11050833333333332,
-  "dominantDialogueEmotion": "neutral",
-  "trajectory": {
-    "startTemperature": 0,
-    "endTemperature": -0.33152499999999996,
-    "volatility": 0.16576249999999998,
-    "trend": "negative"
-  }
-}
+```text
+api/             → controllers + DTOs
+application/     → use cases
+domain/          → business logic + models
+infrastructure/  → ML, Redis, lexicons
+mapper/          → MapStruct mappers
+config/          → application configuration
 ```
 
 ---
 
-### 4. Get session history
+## Rules
+- ALL mapping must use MapStruct
+- No manual mapping in controllers/services
+- No business logic in controllers
+- ML must be accessed via interfaces
+- Keep domain independent from infrastructure
+- DTOs should use Java records
+- Same entity → same DTO
+- Aggregated entity → separate DTO
+- Context endpoint is the only stateful endpoint
+- Update README.md when public API changes
+- Keep AGENTS.md implementation-focused
 
-GET /api/v1/emotion/message/with-context/session/{sessionId}
+---
 
-**Response**
+## Emotion Pipeline
 
-```json
-[
-  {
-    "speaker": "user",
-    "text": "Hi"
-  },
-  {
-    "speaker": "bot",
-    "text": "Hello"
-  },
-  {
-    "speaker": "user",
-    "text": "Still not working..."
-  }
-]
+Primary inference:
+```text
+ONNX transformer
+```
+
+Secondary signals:
+```text
+NRC + DepecheMood
 ```
 
 ---
 
-## Core Concepts
+## Fusion Weights
 
-### Emotion Temperature
+Default:
+
+```text
+transformer = 0.85
+nrc = 0.05
+depecheMood = 0.10
+```
+
+Short messages:
+
+```text
+transformer = 0.70
+lexicons = 0.30
+```
+
+---
+
+## Lexicon Rules
+
+- Use weighted emotion maps internally
+- Filter weak emotions
+- Return top 3 emotions maximum
+- Apply negation handling
+- Transformer remains dominant
+
+---
+
+## Redis Rules
+
+Redis stores:
+- active dialogue context only
+
+Redis does NOT store:
+- analytics history
+- reports
+- permanent records
+
+Use rolling context windows:
+```text
+20-50 messages
+```
+
+---
+
+## Context Endpoint Flow
+
+```text
+load context
+    ↓
+append new message
+    ↓
+trim context
+    ↓
+analyze dialogue
+    ↓
+save updated context
+```
+
+---
+
+## Emotion Temperature
 
 Range: [-1.0, 1.0]
 
@@ -186,135 +119,3 @@ Formula:
 ```
 temperature = sentiment * intensity
 ```
-
----
-
-## DTOs
-
-### MessageAnalysisDto
-
-```java
-record MessageAnalysisDto(
-        String speaker,
-        Double temperature,
-        java.util.List<String> emotion,
-        Double confidence
-) {
-}
-```
-
-### ParticipantAnalysisDto
-
-```java
-record ParticipantAnalysisDto(
-        String speaker,
-        Double temperature,
-        String dominantEmotion,
-        String emotionalTrend
-) {
-}
-```
-
-### TrajectoryDto
-
-```java
-record TrajectoryDto(
-        Double startTemperature,
-        Double endTemperature,
-        Double volatility,
-        String trend
-) {
-}
-```
-
----
-
-## Architecture
-
-```
-Controller → UseCase → Inference → Lexicon → Aggregation
-```
-
----
-
-## Components
-
-### Inference Engine
-
-* Interface-based
-* ML model (primary signal)
-
-### Lexicon Analyzer
-
-* Dictionary-based scoring (NRC + DepecheMood)
-* Returns a ranked list of emotions; the first entry is dominant
-* Short messages (<= 3 words) increase lexicon influence
-
----
-
-## Fusion Weights
-
-Default weighting:
-
-```text
-transformer = 0.85
-nrc = 0.05
-depecheMood = 0.10
-```
-
-Short messages (<= 3 words):
-
-```text
-transformer = 0.70
-lexicons = 0.30
-```
-
-Lexicon fusion keeps a 1:2 NRC-to-DepecheMood ratio inside the lexicon share.
-
----
-
-## Rules
-
-* No client-side message IDs
-* Server may hash messages internally
-* Same entity → same DTO (messages reuse MessageAnalysisDto)
-* Aggregated entity → separate DTO (participants)
-* Keep API stateless (except context endpoint)
-* Separate domain from DTOs
-* Do not couple business logic to ML implementation
-* DTOs should be Java records (keep DTOs as records)
-* Update README.md and AGENTS.md if related code is changed
-* All DTO <-> domain mapping MUST use MapStruct
-* Duplication tracking lives in `DUPLICATION_NOTES.md`
-
----
-
-## Metric Usage
-
-* `messages[].temperature` → real-time reactions
-* `overallTemperature` → global behavior
-
----
-
-## ONNX Setup
-
-Download `model.onnx` and `tokenizer.json` from:
-
-```
-SamLowe/roberta-base-go_emotions-onnx
-```
-
-Place the files here:
-
-```
-src/main/resources/model/
-```
-
-Model assets should be tracked with Git LFS so they are available on checkout without bloating Git history.
-
----
-
-## ONNX Dominant vs Close Emotions
-
-The ONNX inference engine returns the dominant emotion by default. If other emotions are within
-`0.05` confidence of the dominant one, it returns those closest emotions too (up to 3 total).
