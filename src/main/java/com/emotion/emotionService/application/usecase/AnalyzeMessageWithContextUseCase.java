@@ -59,7 +59,7 @@ public class AnalyzeMessageWithContextUseCase {
 
   private List<Message> loadContextMessages(UUID sessionId) {
     return contextCacheRepository.findBySessionId(sessionId)
-        .map(DialogueContext::getMessages)
+        .map(DialogueContext::messages)
         .orElseGet(List::of);
   }
 

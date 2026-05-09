@@ -160,18 +160,15 @@ GET /api/v1/emotion/message/with-context/session/{sessionId}
 [
   {
     "speaker": "user",
-    "text": "Hi",
-    "timestamp": "2026-05-08T23:40:20.256260200Z"
+    "text": "Hi"
   },
   {
     "speaker": "bot",
-    "text": "Hello",
-    "timestamp": "2026-05-08T23:40:43.781213Z"
+    "text": "Hello"
   },
   {
     "speaker": "user",
-    "text": "Still not working...",
-    "timestamp": "2026-05-08T23:42:56.932662400Z"
+    "text": "Still not working..."
   }
 ]
 ```

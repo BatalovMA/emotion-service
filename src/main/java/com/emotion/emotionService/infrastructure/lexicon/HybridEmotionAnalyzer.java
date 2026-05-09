@@ -19,7 +19,7 @@ public class HybridEmotionAnalyzer {
   public EmotionResult analyze(Message message) {
 
     EmotionResult ml = inferenceEngine.analyze(message);
-    LexiconResult lex = lexiconAnalyzer.analyze(message.getText());
+    LexiconResult lex = lexiconAnalyzer.analyze(message.text());
 
     double finalSentiment = 0.85 * ml.getSentiment() + 0.15 * lex.getSentiment();
     double finalIntensity = 0.85 * ml.getIntensity() + 0.15 * lex.getIntensity();
@@ -28,7 +28,7 @@ public class HybridEmotionAnalyzer {
     List<String> topEmotions = emotions.stream().limit(3).collect(Collectors.toList());
 
     return EmotionResult.builder()
-        .speaker(message.getSpeaker())
+        .speaker(message.speaker())
         .sentiment(finalSentiment)
         .emotion(topEmotions)
         .intensity(finalIntensity)

@@ -29,7 +29,7 @@ public class OnnxEmotionInferenceEngine implements EmotionInferenceEngine {
   public EmotionResult analyze(Message message) {
     try {
       HuggingFaceTokenizer tokenizer = tokenizerProvider.getTokenizer();
-      Encoding encoding = tokenizer.encode(message.getText());
+      Encoding encoding = tokenizer.encode(message.text());
 
       long[] inputIds = encoding.getIds();
       long[] attentionMask = encoding.getAttentionMask();
@@ -58,7 +58,7 @@ public class OnnxEmotionInferenceEngine implements EmotionInferenceEngine {
         double sentiment = mapEmotionToSentiment(emotionLabel);
 
         return EmotionResult.builder()
-            .speaker(message.getSpeaker())
+            .speaker(message.speaker())
             .emotion(emotions)
             .sentiment(sentiment)
             .intensity(Math.abs(sentiment))

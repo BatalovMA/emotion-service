@@ -26,7 +26,7 @@ public class RedisContextCacheRepository implements ContextCacheRepository {
   @Override
   public void save(DialogueContext context) {
     redisTemplate.opsForValue().set(
-        buildKey(context.getSessionId()),
+        buildKey(context.sessionId()),
         context,
         contextProperties.ttl()
     );

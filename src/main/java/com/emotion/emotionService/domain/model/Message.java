@@ -1,12 +1,3 @@
 package com.emotion.emotionService.domain.model;
 
-import java.time.Instant;
-
-@lombok.Value
-@lombok.Builder
-@lombok.extern.jackson.Jacksonized
-public class Message {
-  String speaker;
-  String text;
-  Instant timestamp;
-}
+public record Message(String speaker, String text) {}
