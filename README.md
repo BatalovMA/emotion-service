@@ -13,6 +13,15 @@ Supports:
 
 ---
 
+# Essential set up
+
+In order for context endpoint to work - you'll need to start redis:
+```
+docker run --rm -p 6379:6379 --name emotion-redis redis:7
+```
+
+---
+
 # Features
 
 - Hybrid ML + lexicon emotion inference
@@ -21,7 +30,7 @@ Supports:
 - Redis-backed conversational memory
 - Swagger/OpenAPI support
 - ONNX runtime inference
-- MapStruct-based DTO mappin
+- MapStruct-based DTO mapping
 
 ---
 
