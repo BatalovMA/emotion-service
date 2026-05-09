@@ -8,7 +8,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -67,19 +66,19 @@ public class DepecheMoodAnalyzer {
       return Collections.emptyMap();
     }
 
-    return tokens.stream()
-        .map(token -> Map.entry(token, wordToScores.get(token.word())))
-        .filter(entry -> entry.getValue() != null)
-        .flatMap(
-            entry ->
-                java.util.stream.IntStream.range(0, emotions.size())
-                    .mapToObj(
-                        index ->
-                            Map.entry(
-                                emotions.get(index),
-                                entry.getKey().negated()
-                                    ? -entry.getValue()[index]
-                                    : entry.getValue()[index])))
-        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, Double::sum));
+    Map<String, Double> scores = new HashMap<>();
+    for (LexiconPreprocessor.Token token : tokens) {
+      double[] values = wordToScores.get(token.word());
+      if (values == null) continue;
+
+      for (int i = 0; i < emotions.size(); i++) {
+        double value = values[i];
+        if (token.negated()) value *= -1.0;
+
+        scores.merge(emotions.get(i), value, Double::sum);
+      }
+    }
+
+    return scores;
   }
 }
