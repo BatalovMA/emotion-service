@@ -51,19 +51,13 @@ public class NrcEmotionAnalyzer {
   }
 
   Map<String, Double> analyzeScores(String text) {
-    List<LexiconPreprocessor.Token> tokens = LexiconPreprocessor.tokenizeWithNegation(text);
 
-    return tokens.stream()
-        .map(token -> Map.entry(token, wordToEmotions.get(token.word())))
-        .filter(entry -> entry.getValue() != null)
+    return LexiconPreprocessor.tokenizeWithNegation(text).stream()
+        .filter(token -> wordToEmotions.containsKey(token.word()))
         .flatMap(
-            entry ->
-                entry.getValue().stream()
-                    .map(
-                        emotion ->
-                            entry.getKey().negated()
-                                ? invertPolarity(emotion)
-                                : emotion))
+            token ->
+                wordToEmotions.get(token.word()).stream()
+                    .map(emotion -> token.negated() ? invertPolarity(emotion) : emotion))
         .collect(Collectors.toMap(emotion -> emotion, emotion -> 1.0, Double::sum));
   }
 
