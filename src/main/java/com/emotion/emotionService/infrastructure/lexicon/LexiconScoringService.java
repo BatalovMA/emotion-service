@@ -3,14 +3,39 @@ package com.emotion.emotionService.infrastructure.lexicon;
 import com.emotion.emotionService.domain.model.LexiconResult;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
 @Component
 public class LexiconScoringService {
 
-  private static final double EMOTION_THRESHOLD = 0.15;
+  private static final double EMOTION_THRESHOLD = 0.30;
   private static final int MAX_EMOTIONS = 3;
+  private static final Set<String> EXCLUDED_EMOTIONS =
+      Set.of("trust", "anticipation", "positive", "negative", "surprise");
+
+  private static final Map<String, String> EMOTION_NORMALIZATION =
+      Map.ofEntries(
+          Map.entry("annoyance", "anger"),
+          Map.entry("annoyed", "anger"),
+          Map.entry("angry", "anger"),
+          Map.entry("disapproval", "anger"),
+          Map.entry("sad", "sadness"),
+          Map.entry("grief", "sadness"),
+          Map.entry("disappointment", "sadness"),
+          Map.entry("remorse", "sadness"),
+          Map.entry("embarrassment", "sadness"),
+          Map.entry("nervousness", "fear"),
+          Map.entry("afraid", "fear"),
+          Map.entry("amusement", "joy"),
+          Map.entry("amused", "joy"),
+          Map.entry("excitement", "joy"),
+          Map.entry("love", "joy"),
+          Map.entry("happy", "joy"),
+          Map.entry("dont_care", "neutral"),
+          Map.entry("realization", "neutral"),
+          Map.entry("confusion", "neutral"));
 
   private static final Map<String, Double> EMOTION_POLARITY =
       Map.ofEntries(
@@ -50,7 +75,8 @@ public class LexiconScoringService {
       return neutralResult();
     }
 
-    Map<String, Double> normalized = normalize ? normalize(scores) : scores;
+    Map<String, Double> normalizedScores = normalizeLabels(scores);
+    Map<String, Double> normalized = normalize ? normalize(normalizedScores) : normalizedScores;
     if (normalized.isEmpty()) {
       return neutralResult();
     }
@@ -58,8 +84,13 @@ public class LexiconScoringService {
     double sentiment = resolveSentiment(normalized);
     double intensity = resolveIntensity(normalized);
 
-    List<String> rankedEmotions =
+    Map<String, Double> rankedScores =
         normalized.entrySet().stream()
+            .filter(entry -> !EXCLUDED_EMOTIONS.contains(entry.getKey()))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+    List<String> rankedEmotions =
+        rankedScores.entrySet().stream()
             .filter(entry -> entry.getValue() >= EMOTION_THRESHOLD)
             .sorted(Map.Entry.<String, Double>comparingByValue().reversed())
             .limit(MAX_EMOTIONS)
@@ -75,6 +106,21 @@ public class LexiconScoringService {
         .intensity(intensity)
         .emotions(rankedEmotions)
         .build();
+  }
+
+  private Map<String, Double> normalizeLabels(Map<String, Double> scores) {
+    return scores.entrySet().stream()
+        .collect(
+            Collectors.toMap(
+                entry -> normalizeLabel(entry.getKey()), Map.Entry::getValue, Double::sum));
+  }
+
+  private String normalizeLabel(String rawLabel) {
+    if (rawLabel == null || rawLabel.isBlank()) {
+      return "neutral";
+    }
+    String key = rawLabel.toLowerCase().trim();
+    return EMOTION_NORMALIZATION.getOrDefault(key, key);
   }
 
   private LexiconResult neutralResult() {

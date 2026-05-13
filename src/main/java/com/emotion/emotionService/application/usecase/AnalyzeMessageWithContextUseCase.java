@@ -6,7 +6,11 @@ import com.emotion.emotionService.domain.model.DialogueAnalysis;
 import com.emotion.emotionService.domain.model.DialogueContext;
 import com.emotion.emotionService.domain.model.Message;
 import com.emotion.emotionService.domain.model.MessageAnalysis;
+import com.emotion.emotionService.domain.model.Trajectory;
 import com.emotion.emotionService.domain.service.ContextCacheRepository;
+import com.emotion.emotionService.domain.service.ContextRerankingService;
+import com.emotion.emotionService.domain.service.DialogueAggregationService;
+import com.emotion.emotionService.domain.service.TrajectoryAnalysisService;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +25,9 @@ public class AnalyzeMessageWithContextUseCase {
   private final AnalyzeDialogueUseCase analyzeDialogueUseCase;
   private final ContextCacheRepository contextCacheRepository;
   private final ContextProperties contextProperties;
+  private final ContextRerankingService contextRerankingService;
+  private final DialogueAggregationService dialogueAggregationService;
+  private final TrajectoryAnalysisService trajectoryAnalysisService;
 
   public ContextMessageAnalysis execute(UUID sessionId, Message message) {
     UUID resolvedSessionId = resolveSessionId(sessionId);
@@ -31,7 +38,12 @@ public class AnalyzeMessageWithContextUseCase {
     updatedMessages = trimToWindow(updatedMessages, contextProperties.windowSize());
 
     DialogueAnalysis dialogueAnalysis = analyzeDialogueUseCase.execute(updatedMessages);
-    MessageAnalysis latestMessageAnalysis = latestMessage(dialogueAnalysis.getMessages());
+    List<MessageAnalysis> rerankedMessages = rerankLatest(dialogueAnalysis.getMessages(), message);
+    MessageAnalysis latestMessageAnalysis = latestMessage(rerankedMessages);
+
+    double overallTemperature = dialogueAggregationService.calculateOverallTemperature(rerankedMessages);
+    String dominantDialogueEmotion = dialogueAggregationService.findDominantDialogueEmotion(rerankedMessages);
+    Trajectory trajectory = trajectoryAnalysisService.analyze(rerankedMessages);
 
     DialogueContext updatedContext = DialogueContext.builder()
         .sessionId(resolvedSessionId)
@@ -43,9 +55,9 @@ public class AnalyzeMessageWithContextUseCase {
     return ContextMessageAnalysis.builder()
         .sessionId(resolvedSessionId)
         .message(latestMessageAnalysis)
-        .overallTemperature(dialogueAnalysis.getOverallTemperature())
-        .dominantDialogueEmotion(dialogueAnalysis.getDominantDialogueEmotion())
-        .trajectory(dialogueAnalysis.getTrajectory())
+        .overallTemperature(overallTemperature)
+        .dominantDialogueEmotion(dominantDialogueEmotion)
+        .trajectory(trajectory)
         .build();
   }
 
@@ -76,5 +88,29 @@ public class AnalyzeMessageWithContextUseCase {
     }
     return messages.getLast();
   }
-}
 
+  private List<MessageAnalysis> rerankLatest(List<MessageAnalysis> messages, Message message) {
+    if (messages == null || messages.isEmpty()) {
+      return List.of();
+    }
+    if (messages.size() == 1) {
+      MessageAnalysis reranked =
+          contextRerankingService.rerank(messages.getFirst(), List.of(), messageText(message));
+      return List.of(reranked == null ? messages.getFirst() : reranked);
+    }
+
+    List<MessageAnalysis> updated = new ArrayList<>(messages);
+    MessageAnalysis latest = messages.getLast();
+    List<MessageAnalysis> previous = messages.subList(0, messages.size() - 1);
+    MessageAnalysis reranked =
+        contextRerankingService.rerank(latest, previous, messageText(message));
+    if (reranked != null) {
+      updated.set(updated.size() - 1, reranked);
+    }
+    return updated;
+  }
+
+  private String messageText(Message message) {
+    return message == null ? null : message.text();
+  }
+}

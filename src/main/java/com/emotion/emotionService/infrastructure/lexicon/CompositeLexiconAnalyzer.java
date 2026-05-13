@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 public class CompositeLexiconAnalyzer implements LexiconAnalyzer {
 
   private static final double NRC_RELATIVE_WEIGHT = 1.0;
-  private static final double DEPECHE_RELATIVE_WEIGHT = 2.0;
+  private static final double DEPECHE_RELATIVE_WEIGHT = 1.0;
 
   private final NrcEmotionAnalyzer nrc;
   private final DepecheMoodAnalyzer depecheMood;

@@ -5,6 +5,7 @@ import com.emotion.emotionService.domain.model.EmotionResult;
 import com.emotion.emotionService.domain.model.LexiconResult;
 import com.emotion.emotionService.domain.model.Message;
 import com.emotion.emotionService.infrastructure.inference.EmotionInferenceEngine;
+import com.emotion.emotionService.infrastructure.lexicon.EmotionFusionPolicy;
 import com.emotion.emotionService.infrastructure.lexicon.CompositeLexiconAnalyzer;
 import com.emotion.emotionService.infrastructure.lexicon.LexiconScoringService;
 import com.emotion.emotionService.infrastructure.lexicon.NrcEmotionAnalyzer;
@@ -17,12 +18,6 @@ import org.springframework.boot.WebApplicationType;
 import org.springframework.context.ConfigurableApplicationContext;
 
 public final class EvaluationRunner {
-
-  private static final double DEFAULT_ML_WEIGHT = 0.85;
-  private static final double DEFAULT_LEXICON_WEIGHT = 0.15;
-  private static final double SHORT_MESSAGE_ML_WEIGHT = 0.70;
-  private static final double SHORT_MESSAGE_LEXICON_WEIGHT = 0.30;
-  private static final int SHORT_MESSAGE_WORD_LIMIT = 3;
 
   private EvaluationRunner() {}
 
@@ -38,6 +33,7 @@ public final class EvaluationRunner {
       GoEmotionsDatasetLoader loader = context.getBean(GoEmotionsDatasetLoader.class);
       EmotionNormalizer normalizer = context.getBean(EmotionNormalizer.class);
       EmotionInferenceEngine inferenceEngine = context.getBean(EmotionInferenceEngine.class);
+      EmotionFusionPolicy fusionPolicy = context.getBean(EmotionFusionPolicy.class);
       CompositeLexiconAnalyzer compositeLexiconAnalyzer =
           context.getBean(CompositeLexiconAnalyzer.class);
       NrcEmotionAnalyzer nrcEmotionAnalyzer = context.getBean(NrcEmotionAnalyzer.class);
@@ -57,6 +53,7 @@ public final class EvaluationRunner {
             evaluationMode,
             normalizer,
             inferenceEngine,
+            fusionPolicy,
             compositeLexiconAnalyzer,
             nrcEmotionAnalyzer,
             scoringService);
@@ -69,6 +66,7 @@ public final class EvaluationRunner {
       EvaluationMode mode,
       EmotionNormalizer normalizer,
       EmotionInferenceEngine inferenceEngine,
+      EmotionFusionPolicy fusionPolicy,
       CompositeLexiconAnalyzer compositeLexiconAnalyzer,
       NrcEmotionAnalyzer nrcEmotionAnalyzer,
       LexiconScoringService scoringService) {
@@ -80,6 +78,7 @@ public final class EvaluationRunner {
               record,
               mode,
               inferenceEngine,
+              fusionPolicy,
               compositeLexiconAnalyzer,
               nrcEmotionAnalyzer,
               scoringService);
@@ -105,6 +104,7 @@ public final class EvaluationRunner {
       GoEmotionsDatasetLoader.DatasetRecord record,
       EvaluationMode mode,
       EmotionInferenceEngine inferenceEngine,
+      EmotionFusionPolicy fusionPolicy,
       CompositeLexiconAnalyzer compositeLexiconAnalyzer,
       NrcEmotionAnalyzer nrcEmotionAnalyzer,
       LexiconScoringService scoringService) {
@@ -119,23 +119,7 @@ public final class EvaluationRunner {
             ? scoringService.buildResult(nrcEmotionAnalyzer.analyze(message.text()), false)
             : compositeLexiconAnalyzer.analyze(message.text());
 
-    boolean shortMessage = countWords(message.text()) <= SHORT_MESSAGE_WORD_LIMIT;
-    double mlWeight = shortMessage ? SHORT_MESSAGE_ML_WEIGHT : DEFAULT_ML_WEIGHT;
-    double lexWeight = shortMessage ? SHORT_MESSAGE_LEXICON_WEIGHT : DEFAULT_LEXICON_WEIGHT;
-
-    double finalSentiment = mlWeight * ml.getSentiment() + lexWeight * lexicon.getSentiment();
-    double finalIntensity = mlWeight * ml.getIntensity() + lexWeight * lexicon.getIntensity();
-
-    EmotionResult fused =
-        EmotionResult.builder()
-            .speaker(message.speaker())
-            .sentiment(finalSentiment)
-            .emotion(ml.getConfidence() > 0.5 ? ml.getEmotion() : lexicon.getEmotions())
-            .intensity(finalIntensity)
-            .confidence(ml.getConfidence())
-            .build();
-
-    return dominantEmotion(fused);
+    return dominantEmotion(fusionPolicy.fuse(message, ml, lexicon));
   }
 
   private static String dominantEmotion(EmotionResult result) {
@@ -144,17 +128,6 @@ public final class EvaluationRunner {
       return "neutral";
     }
     return emotions.getFirst();
-  }
-
-  private static int countWords(String text) {
-    if (text == null || text.isBlank()) {
-      return 0;
-    }
-    String normalized = text.toLowerCase().replaceAll("[^a-z\\s]", " ").trim();
-    if (normalized.isEmpty()) {
-      return 0;
-    }
-    return normalized.split("\\s+").length;
   }
 
   private static Map<String, String> parseArgs(String[] args) {
