@@ -47,6 +47,16 @@ dependencies {
 	testAnnotationProcessor 'org.projectlombok:lombok'
 }
 
-tasks.named('test') {
+tasks.named('test', Test) {
 	useJUnitPlatform()
+}
+
+tasks.register('evaluationRun', JavaExec) {
+	group = 'evaluation'
+	description = 'Run GoEmotions evaluation runner.'
+	classpath = sourceSets.main.runtimeClasspath
+	mainClass = 'com.emotion.emotionService.evaluation.EvaluationRunner'
+	if (project.hasProperty('evalArgs')) {
+		args project.property('evalArgs').toString().split('\\s+')
+	}
 }

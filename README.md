@@ -46,6 +46,25 @@ docker run --rm -p 6379:6379 --name emotion-redis redis:7
 
 ---
 
+# Evaluation
+
+Run GoEmotions evaluation without starting the web server:
+
+```
+.\gradlew evaluationRun -PevalArgs="--limit=1000"
+```
+
+Modes (optional, defaults to all):
+
+```
+--mode=onnx-only
+--mode=onnx-nrc
+--mode=onnx-nrc-depeche
+```
+
+
+---
+
 # Swagger
 
 Swagger UI:
